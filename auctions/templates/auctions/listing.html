@@ -16,6 +16,7 @@
         </ul>
     </div>
 
+    <!-- Watchlist -->
     {% if on_watch %}
     <form method="post" action="{% url 'listing' listing.id %}">
         {% csrf_token %}
@@ -28,6 +29,23 @@
         <input type="hidden" name="action" value="add_to_watchlist">
         <button type="submit" class="btn btn-outline-success btn-lg">Add To Watchlist</button>
     </form>
+    {% endif %}
+
+    <!-- Bid -->
+    <div>
+        <h3>Bids start at : {{ min_to_bid }}$</h3>
+        <form method="post" action="{% url 'listing' listing.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bid">
+            <input type="number" min="{{ min_to_bid | default:listing.starting_bid }}" name="amount" step="0.1">
+            <button type="submit" class="btn btn-outline-success btn-lg">Bid On Item</button>
+        </form>
+    </div>
+
+    {% if error_message %}
+    <div>
+        {{ error_message }}
+    </div>
     {% endif %}
 
 {% endblock %}

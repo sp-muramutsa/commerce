@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
+from django.db.models import Max
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, path
@@ -74,7 +75,6 @@ def list(request):
                 title = form.cleaned_data["title"],
                 description = form.cleaned_data["description"],
                 category = form.cleaned_data["category"],
-                price = form.cleaned_data["price"],
                 starting_bid = form.cleaned_data["starting_bid"],
                 seller = request.user,
                 image_url = form.cleaned_data["image_url"]
@@ -89,43 +89,46 @@ def list(request):
 
 
 def listing(request, listing_id):
-    current_user = request.user
     listing = get_object_or_404(Listing, pk=listing_id)
+    all_bids = Bid.objects.filter(listing=listing)
+    min_to_bid = all_bids.aggregate(max_bid=Max('amount'))['max_bid'] or listing.starting_bid
+    min_to_bid = round(min_to_bid, 1)
+    on_watch = False
+    
 
-    if request.method == "GET": 
-         # Retrieve the user's watchlist
-        user_watchlist, created = Watchlist.objects.get_or_create(user=current_user)
-
-        # Check if the listing is in the user's watchlist
+    if request.user.is_authenticated:
+        current_user = request.user
+        user_watchlist, _ = Watchlist.objects.get_or_create(user=current_user)
         on_watch = listing in user_watchlist.item.all()
 
-        return render(request, "auctions/listing.html", {
-            "listing": listing,
-            "on_watch": on_watch
-            })
-    
-    elif request.method== "POST":
-        action = request.POST.get("action")
-        user_watchlist, created = Watchlist.objects.get_or_create(user=current_user)
+        if request.method == "POST":
+            action = request.POST.get("action")
 
-        if action == "add_to_watchlist":
-            user_watchlist.item.add(listing)
-        
-        elif action == "remove_from_watchlist":
-            user_watchlist.item.remove(listing)
-        
-        return HttpResponseRedirect(request.path)
-        
-    else:
-        return redirect("index")
+            if action == "add_to_watchlist":
+                user_watchlist.item.add(listing)
+            elif action == "remove_from_watchlist":
+                user_watchlist.item.remove(listing)
+            elif action == "bid":
+                amount = float(request.POST.get("amount"))
+                if amount <= min_to_bid:
+                    error_message = f"Bid should be higher than the current highest bid of {round(min_to_bid, 1)}$"
+                    return render(request, "auctions/listing.html", {
+                        "error_message": error_message,
+                        "listing": listing,
+                        "min_to_bid": min_to_bid,
+                        "on_watch": on_watch
+                    })
+                else:
+                    bid = Bid.objects.create(listing=listing, bidder=current_user, amount=amount)
+                    bid.save()
+                return HttpResponseRedirect(request.path)
+            
+    elif request.method == "POST":
+            # Redirect to the login page if the user tries to take further actions while not logged in
+            return HttpResponseRedirect(reverse('login'))
 
-
-
-
-
-
-
-    
-
-
-   
+    return render(request, "auctions/listing.html", {
+        "listing": listing,
+        "min_to_bid": min_to_bid,
+        "on_watch": on_watch
+    })

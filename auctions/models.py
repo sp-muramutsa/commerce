@@ -1,6 +1,8 @@
+from decimal import Decimal
 from .categories import CATEGORY_CHOICES
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 class User(AbstractUser):
@@ -15,8 +17,7 @@ class Listing(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
     category = models.CharField(max_length=100, choices= CATEGORY_CHOICES)
-    starting_bid = models.DecimalField(max_digits=10, decimal_places=2)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    starting_bid = models.DecimalField(max_digits=10, decimal_places=1, validators=[MinValueValidator(Decimal("0.0"))])
     seller = models.ForeignKey(User, on_delete=models.CASCADE)
     image_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -28,18 +29,6 @@ class Listing(models.Model):
 
     def __str__(self):
         return f"Title: {self.title}\nCategory: {self.category}\nSeller: {self.seller.first_name} {self.seller.last_name}\nStatus: {'Active' if self.is_active else 'Sold'}\n\n"
-    
-    def determine_winning_bid(self):
-
-        # Get all bids for this listing
-        all_bids = self.bids.all()
-
-        # Find the bid with the highest amount
-        winning_bid = max(all_bids, key=lambda bid: bid.amount) if all_bids else None
-
-        # Set the winning_bid attribute
-        self.winning_bid = winning_bid
-        self.save()
 
 
 class Bid(models.Model):
@@ -71,11 +60,11 @@ class Comment(models.Model):
 
 
 class Watchlist(models.Model):   
-   user = models.ForeignKey(User, on_delete=models.CASCADE)
+   user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
    item = models.ManyToManyField(Listing, related_name="watchlists")
 
    def __str__(self):
-       return f"{self.user}'s watchlist"
+       return f"{self.user}'s watchlisted {self.item}"
 
 
 class Address(models.Model):
