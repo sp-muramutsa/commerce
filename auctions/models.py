@@ -21,15 +21,30 @@ class Listing(models.Model):
     image_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-    bids = models.ManyToManyField("Bid", related_name="listings")
-    orders = models.ManyToManyField("Order", related_name="listings")
+    bids = models.ManyToManyField("Bid", related_name="listing_bids")
+    orders = models.ManyToManyField("Order", related_name="listing_orders")
+    winning_bid = models.ForeignKey("Bid", on_delete=models.SET_NULL, null=True, blank=True, related_name="winning_bid_listing")
+    watchlist = models.ManyToManyField("Watchlist", related_name="watchlisted_by", blank=True)
 
     def __str__(self):
         return f"Title: {self.title}\nCategory: {self.category}\nSeller: {self.seller.first_name} {self.seller.last_name}\nStatus: {'Active' if self.is_active else 'Sold'}\n\n"
+    
+    def determine_winning_bid(self):
+
+        # Get all bids for this listing
+        all_bids = self.bids.all()
+
+        # Find the bid with the highest amount
+        winning_bid = max(all_bids, key=lambda bid: bid.amount) if all_bids else None
+
+        # Set the winning_bid attribute
+        self.winning_bid = winning_bid
+        self.save()
+
 
 class Bid(models.Model):
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
-    bidder = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bidders")
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="bids_listing")
+    bidder = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -38,7 +53,7 @@ class Bid(models.Model):
 
 class Order(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.CASCADE)
-    listing = models.OneToOneField(Listing, on_delete=models.CASCADE)
+    listings = models.ManyToManyField(Listing, related_name="order_listings")
     quantity = models.PositiveIntegerField(default=1)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -55,6 +70,14 @@ class Comment(models.Model):
         return f"{self.comment}"
 
 
+class Watchlist(models.Model):   
+   user = models.ForeignKey(User, on_delete=models.CASCADE)
+   item = models.ManyToManyField(Listing, related_name="watchlists")
+
+   def __str__(self):
+       return f"{self.user}'s watchlist"
+
+
 class Address(models.Model):
     country = models.CharField(max_length=100, null=False)
     street_address = models.CharField(max_length=255, null=False)
@@ -63,4 +86,3 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.street_address}, {self.city}, {self.country} - {self.zip_code}"
-

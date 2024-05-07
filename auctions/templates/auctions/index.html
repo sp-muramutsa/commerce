@@ -1,17 +1,25 @@
 {% extends "auctions/layout.html" %}
+{% load static %}
 
 {% block body %}
-    <a href="{% url 'list' %}">Create Listing</a>
     <h2>Active Listings</h2>
     
     {% for listing in active_listings %}
-        <ul>
-            <li>{{ listing.title }}</li>
-            <li>{{ listing.description }}</li>
-            <li>{{ listing.price }}</li>
-            <li><img src="{{ listing.image_url }}" Alt="Image of {self.title}"></li>
-            <li>{{ listing.seller }}</li>
-        </ul>   
+    <a href="{% url 'listing' listing_id=listing.id %}">
+        <div class="container-fluid">
+            <ul>
+                <div class="container">
+                    <li><img src="{{ listing.image_url }}" Alt="Image of {self.title}" style="width: 300px; height: auto;"></li>
+                </div>
+                <div class="container">
+                    <li>{{ listing.title }}</li>
+                    <li>Price: ${{ listing.price }}</li>
+                    <li>Created at: {{ listing.created_at }}</li>
+                </div>
+            </ul>   
+        </div>
+        <button type="submit"></button>
+    </a>
     {% empty %}
         <h1>There are no active listings. Stay tuned for the next top-up.</h1>
     {% endfor %}

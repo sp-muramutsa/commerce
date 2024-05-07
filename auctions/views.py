@@ -2,8 +2,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, redirect
-from django.urls import reverse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse, path
 from django import forms
 from .forms import ListingForm
 from .models import *
@@ -86,7 +86,45 @@ def list(request):
         return render(request, "auctions/list.html", {
             "form": form
         })
+
+
+def listing(request, listing_id):
+    current_user = request.user
+    listing = get_object_or_404(Listing, pk=listing_id)
+
+    if request.method == "GET": 
+         # Retrieve the user's watchlist
+        user_watchlist, created = Watchlist.objects.get_or_create(user=current_user)
+
+        # Check if the listing is in the user's watchlist
+        on_watch = listing in user_watchlist.item.all()
+
+        return render(request, "auctions/listing.html", {
+            "listing": listing,
+            "on_watch": on_watch
+            })
     
+    elif request.method== "POST":
+        action = request.POST.get("action")
+        user_watchlist, created = Watchlist.objects.get_or_create(user=current_user)
+
+        if action == "add_to_watchlist":
+            user_watchlist.item.add(listing)
+        
+        elif action == "remove_from_watchlist":
+            user_watchlist.item.remove(listing)
+        
+        return HttpResponseRedirect(request.path)
+        
+    else:
+        return redirect("index")
+
+
+
+
+
+
+
     
 
 
