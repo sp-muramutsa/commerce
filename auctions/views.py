@@ -97,7 +97,6 @@ def listing(request, listing_id):
     listing = get_object_or_404(Listing, pk=listing_id)
     all_bids = listing.bids_listing.all()
     comments = listing.comments.all()
-    print(comments)
     min_to_bid = all_bids.aggregate(max_bid=Max('amount'))['max_bid'] or listing.starting_bid
     min_to_bid = round(min_to_bid, 1)
     on_watch = False
@@ -183,3 +182,15 @@ def listing(request, listing_id):
         "ownership": ownership
     })
 
+
+@login_required(login_url="login")
+def watchlist(request):
+    current_user = request.user
+    user_watchlist = Watchlist.objects.filter(user=current_user)
+    watchlisted_items = []
+    for watchlist in user_watchlist:
+        watchlisted_items.extend(watchlist.item.all())
+    
+    return render(request, "auctions/watchlist.html", {
+        "watchlisted_items": watchlisted_items
+    })
