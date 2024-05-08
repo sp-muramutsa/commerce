@@ -34,6 +34,7 @@ class Listing(models.Model):
 class Watchlist(models.Model):   
    user = models.ForeignKey(User, on_delete=models.CASCADE)
    item = models.ManyToManyField(Listing, related_name="watchlists")
+   created_at = models.DateTimeField(auto_now_add=True)
 
    def __str__(self):
        return f"{self.user}'s watchlisted {self.item}"
@@ -50,9 +51,10 @@ class Bid(models.Model):
     
 
 class Comment(models.Model):
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="comments")
     comment = models.TextField()
     commenter = models.ForeignKey(User, on_delete=models.CASCADE, related_name="commenters")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.comment}"
+        return f"{self.commenter} added a comment\n{self.comment}\n{self.created_at}\n\n"

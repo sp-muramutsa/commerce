@@ -6,7 +6,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, path
 from django import forms
-from .forms import ListingForm
+from .forms import *
 from .models import *
 
 def index(request):
@@ -95,7 +95,9 @@ def list(request):
 
 def listing(request, listing_id):
     listing = get_object_or_404(Listing, pk=listing_id)
-    all_bids = Bid.objects.filter(listing=listing)
+    all_bids = listing.bids_listing.all()
+    comments = listing.comments.all()
+    print(comments)
     min_to_bid = all_bids.aggregate(max_bid=Max('amount'))['max_bid'] or listing.starting_bid
     min_to_bid = round(min_to_bid, 1)
     on_watch = False
@@ -137,6 +139,7 @@ def listing(request, listing_id):
                     error_message = f"Bid should be higher than the current highest bid of {round(min_to_bid, 1)}$"
                     return render(request, "auctions/listing.html", {
                         "bid_status": bid_status,
+                        "comments": comments,
                         "error_message": error_message,
                         "listing": listing,
                         "min_to_bid": min_to_bid,
@@ -151,10 +154,18 @@ def listing(request, listing_id):
             elif action == "close":
                 all_bids = Bid.objects.filter(listing=listing)
                 if all_bids:
-                    winner = all_bids.order_by('-amount').first()
+                    winner = all_bids.order_by("-amount").first()
                     listing.winning_bid = winner
                 listing.is_active = False
                 listing.save()
+            
+            elif action == "comment":
+                comment_form = CommentForm(request.POST)
+                if comment_form.is_valid():
+                    comment_text = comment_form.cleaned_data["comment"]
+                    Comment.objects.create(listing=listing, comment=comment_text, commenter=current_user)
+                    
+
                 
             
             
@@ -164,8 +175,11 @@ def listing(request, listing_id):
 
     return render(request, "auctions/listing.html", {
         "bid_status": bid_status,
+        "comment_form": CommentForm(),
+        "comments": comments,
         "listing": listing,
         "min_to_bid": min_to_bid,
         "on_watch": on_watch,
         "ownership": ownership
     })
+

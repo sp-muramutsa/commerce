@@ -44,6 +44,19 @@
                 </form>
             </div>
 
+            <!--Comment -->
+            <div>
+                <h3>Comment On Listing</h3>
+                <form method="post" action="{% url 'listing' listing.id %}">
+                    {% csrf_token %}
+                    {{ comment_form.as_p }}
+                    <input type="hidden" name="action" value="comment">
+                    <button type="submit" class="btn btn-outline-success btn-lg">Comment</button>
+                </form>
+            </div>
+
+            <!--Error Message -->
+
             {% if error_message %}
                 <div>
                     {{ error_message }}
@@ -57,7 +70,37 @@
                 <button type="submit" class="btn btn-outline-success btn-lg">Close Listing</button>
             </form>
         {% endif %}
+    <!--Comments Display -->
+    <div>
+        <h4>Comments</h4>
+        {% for comment in comments %}
+        <div>
+            <tr>
+                <div>
+                    {{ comment.commenter }} 
+                </div>
+                <div>
+                    {{ comment.comment }}
+                </div>
+                <div>
+                    {{ comment.created_at }}
+                </div>
+                <br>
+            </tr>
+        </div>
+        {% endfor %}
+    </div>
+
     {% else %}
-        <p>Sold to {{ listing.winning_bid.bidder }} at a price of {{ listing.winning_bid.amount|floatformat:"1" }}$</p>
+
+        {% if ownership %}
+            <p>You sold this item to {{ listing.winning_bid.bidder }} at a price of {{ listing.winning_bid.amount|floatformat:"1" }}$</p>
+        {% else %}
+            {%if bid_status %}
+                <p>You won the bid for this item at a price of {{ listing.winning_bid.amount|floatformat:"1" }}$</p>
+            {% else %}
+                <p>Listing closed</p>
+            {% endif %}
+        {% endif %}
     {% endif %}
 {% endblock %}
