@@ -80,11 +80,16 @@ def list(request):
                 image_url = form.cleaned_data["image_url"]
             )
             return redirect("index")
+        
+        else:
+            return render(request, "auctions/list.html", {
+                "form": ListingForm()
+            })
+
 
     else:
-        form = ListingForm()
         return render(request, "auctions/list.html", {
-            "form": form
+            "form": ListingForm()
         })
 
 
@@ -94,10 +99,26 @@ def listing(request, listing_id):
     min_to_bid = all_bids.aggregate(max_bid=Max('amount'))['max_bid'] or listing.starting_bid
     min_to_bid = round(min_to_bid, 1)
     on_watch = False
+    ownership = False
+    bid_status = False
     
+
 
     if request.user.is_authenticated:
         current_user = request.user
+        listing_owner = listing.seller
+        if current_user == listing_owner:
+            ownership = True
+
+
+        winning_bid = listing.winning_bid
+        if winning_bid:
+            bidder_winner = winning_bid.bidder
+            if bidder_winner == current_user:
+                bid_status = True
+
+            
+
         user_watchlist, _ = Watchlist.objects.get_or_create(user=current_user)
         on_watch = listing in user_watchlist.item.all()
 
@@ -106,29 +127,45 @@ def listing(request, listing_id):
 
             if action == "add_to_watchlist":
                 user_watchlist.item.add(listing)
+
             elif action == "remove_from_watchlist":
                 user_watchlist.item.remove(listing)
+
             elif action == "bid":
                 amount = float(request.POST.get("amount"))
                 if amount <= min_to_bid:
                     error_message = f"Bid should be higher than the current highest bid of {round(min_to_bid, 1)}$"
                     return render(request, "auctions/listing.html", {
+                        "bid_status": bid_status,
                         "error_message": error_message,
                         "listing": listing,
                         "min_to_bid": min_to_bid,
-                        "on_watch": on_watch
+                        "on_watch": on_watch,
+                        "ownership": ownership
                     })
                 else:
                     bid = Bid.objects.create(listing=listing, bidder=current_user, amount=amount)
                     bid.save()
                 return HttpResponseRedirect(request.path)
             
+            elif action == "close":
+                all_bids = Bid.objects.filter(listing=listing)
+                if all_bids:
+                    winner = all_bids.order_by('-amount').first()
+                    listing.winning_bid = winner
+                listing.is_active = False
+                listing.save()
+                
+            
+            
     elif request.method == "POST":
             # Redirect to the login page if the user tries to take further actions while not logged in
             return HttpResponseRedirect(reverse('login'))
 
     return render(request, "auctions/listing.html", {
+        "bid_status": bid_status,
         "listing": listing,
         "min_to_bid": min_to_bid,
-        "on_watch": on_watch
+        "on_watch": on_watch,
+        "ownership": ownership
     })

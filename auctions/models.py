@@ -28,7 +28,8 @@ class Listing(models.Model):
     watchlist = models.ManyToManyField("Watchlist", related_name="watchlisted_by", blank=True)
 
     def __str__(self):
-        return f"Title: {self.title}\nCategory: {self.category}\nSeller: {self.seller.first_name} {self.seller.last_name}\nStatus: {'Active' if self.is_active else 'Sold'}\n\n"
+         return f"Title: {self.title}\nCategory: {self.category}\nSeller: {self.seller.first_name} {self.seller.last_name}\nStatus: {'Active' if self.is_active else 'Sold to ' + str(self.winning_bid.bidder) + ' at a price of ' + str(self.winning_bid.amount) +'$'}\n\n"
+
 
 
 class Bid(models.Model):
@@ -60,7 +61,7 @@ class Comment(models.Model):
 
 
 class Watchlist(models.Model):   
-   user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+   user = models.ForeignKey(User, on_delete=models.CASCADE)
    item = models.ManyToManyField(Listing, related_name="watchlists")
 
    def __str__(self):

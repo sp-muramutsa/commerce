@@ -16,36 +16,48 @@
         </ul>
     </div>
 
-    <!-- Watchlist -->
-    {% if on_watch %}
-    <form method="post" action="{% url 'listing' listing.id %}">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="remove_from_watchlist">
-        <button type="submit" class="btn btn-outline-success btn-lg">Remove From Watchlist</button>
-    </form>
+    {% if listing.is_active %}
+        {% if not ownership %}
+            <!-- Watchlist -->
+            {% if on_watch %}
+                <form method="post" action="{% url 'listing' listing.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove_from_watchlist">
+                    <button type="submit" class="btn btn-outline-success btn-lg">Remove From Watchlist</button>
+                </form>
+            {% else %}
+                <form method="post" action="{% url 'listing' listing.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_to_watchlist">
+                    <button type="submit" class="btn btn-outline-success btn-lg">Add To Watchlist</button>
+                </form>
+            {% endif %}
+
+            <!-- Bid -->
+            <div>
+                <h3>Bids start at: {{ min_to_bid }}$</h3>
+                <form method="post" action="{% url 'listing' listing.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="bid">
+                    <input type="number" min="{{ min_to_bid | default:listing.starting_bid }}" name="amount" step="0.1">
+                    <button type="submit" class="btn btn-outline-success btn-lg">Bid On Item</button>
+                </form>
+            </div>
+
+            {% if error_message %}
+                <div>
+                    {{ error_message }}
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Close Listing -->
+            <form method="post" action="{% url 'listing' listing.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="close">
+                <button type="submit" class="btn btn-outline-success btn-lg">Close Listing</button>
+            </form>
+        {% endif %}
     {% else %}
-    <form method="post" action="{% url 'listing' listing.id %}">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="add_to_watchlist">
-        <button type="submit" class="btn btn-outline-success btn-lg">Add To Watchlist</button>
-    </form>
+        <p>Sold to {{ listing.winning_bid.bidder }} at a price of {{ listing.winning_bid.amount|floatformat:"1" }}$</p>
     {% endif %}
-
-    <!-- Bid -->
-    <div>
-        <h3>Bids start at : {{ min_to_bid }}$</h3>
-        <form method="post" action="{% url 'listing' listing.id %}">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="bid">
-            <input type="number" min="{{ min_to_bid | default:listing.starting_bid }}" name="amount" step="0.1">
-            <button type="submit" class="btn btn-outline-success btn-lg">Bid On Item</button>
-        </form>
-    </div>
-
-    {% if error_message %}
-    <div>
-        {{ error_message }}
-    </div>
-    {% endif %}
-
 {% endblock %}
