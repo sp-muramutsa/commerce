@@ -9,11 +9,16 @@
         <img src="{{ listing.image_url }}">
     </div>
     <div>
-        Details
         <ul>
             <li>Listed by: {{ listing.seller }} </li>
             <li>Category: {{ listing.category }} </li>
         </ul>
+    </div>
+    <div>
+        <h5>Details</h5>
+        <div>
+            {{ listing.description }}
+        </div>
     </div>
 
     {% if listing.is_active %}

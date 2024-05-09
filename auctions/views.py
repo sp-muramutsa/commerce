@@ -8,6 +8,7 @@ from django.urls import reverse, path
 from django import forms
 from .forms import *
 from .models import *
+from .categories import CATEGORY_CHOICES
 
 def index(request):
     active_listings = Listing.objects.filter(is_active=True)
@@ -193,4 +194,18 @@ def watchlist(request):
     
     return render(request, "auctions/watchlist.html", {
         "watchlisted_items": watchlisted_items
+    })
+
+@login_required(login_url="login")
+def categories(request):
+    return render(request, "auctions/categories.html", {
+        "categories": CATEGORY_CHOICES
+    })
+
+@login_required(login_url="login")
+def category(request, category_title):
+    listings = Listing.objects.filter(category=category_title)
+    return render(request, "auctions/category.html", {
+        "category_title": category_title,
+        "listings": listings
     })
